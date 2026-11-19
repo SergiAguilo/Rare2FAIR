@@ -66,14 +66,15 @@ echo "R2F External Installation in Demilitarized Zone"
 echo ""
 
 
-echo "The first question asks for a 'prefix'."
-echo "This is used to compartmentalize your installation, such that you can have multiple R2F External servers running in parallel."
-echo "(effectively, it is a namespace for your installation)."
-echo "The installer tries to delete all existing containers and volumes with the same prefix, so please be careful when choosing this if you have existing installations you care about!" 
+echo "The first question asks for an installation prefix."
+echo "The prefix is used to distinguish this installation from other R2F External installations running on the same host."
 echo ""
+echo "All Docker containers, networks, and volumes created by this installation will use this prefix."
+echo ""
+echo "Warning: existing resources with the same prefix may be removed."
 
 if [ -z $P ]; then
-  read -p "enter a prefix for your components (e.g. euronmd) NOTE: All existing installations with the same prefix will be obliterated!!!!: " P
+  read -p "Installation prefix (e.g. euronmd): " P
   if [ -z $P ]; then
     echo "invalid..."
     exit 1
@@ -82,23 +83,35 @@ fi
 
 
 echo ""
+echo "Enter the Base URL for this installation."
 echo ""
-echo "The next question asks for your permanent GUID."
-echo "If you have a permanent identifier, please be sure that all proxies and redirects are alredy setup and working. "
-echo "If you have a proxy, you must know the port that the proxy is pointing to. "
-echo "If you are installing just to test things, "
-echo "please feel free to use a localhost:PORTXXXX address to answer this question. (you will not be able to register a localhost installation in any registry)"
-echo "IN THIS CASE, NOTE: PORTXXXX must match your answer to the 'port for your External Server', in the next question!!"
-read -p "Your permanent GUID (e.g. https://w3id.org/my-organization): " uri
+echo "Production example:"
+echo "  https://w3id.org/my-organization"
+echo ""
+echo "If you are using a proxy or reverse proxy, enter the public URL through which users will access this installation."
+echo ""
+echo "For local testing, use:"
+echo "  http://localhost:<PORT>"
+echo ""
+echo "Note: localhost installations cannot be registered in public registries."
+echo ""
+echo "In the next step, you will be asked for the External Server port. If you use the recommended port (7070), enter:"
+echo "  http://localhost:7070"
+
+read -p "Base URL: " uri
 
 echo ""
 echo ""
 echo ""
 # FDP_PORT handling
 if [ -z "$FDP_PORT" ]; then
-  echo "If you have a permanent identifier, you will already have an SSL proxy and redirect. "
-  echo "The answer to the next question is the port that the proxy is pointing to. "
-  read -p "Enter the port for your External Server (e.g. 7070): " FDP_PORT
+echo ""
+echo "Choose the port on which the R2F External Server will listen."
+echo ""
+echo "If you are using a reverse proxy, this is the internal port to which the proxy forwards requests."
+echo ""
+
+read -p "R2F External Server port [recommended: 7070]: " FDP_PORT
 fi
 
 if [ -z "$FDP_PORT" ]; then
@@ -126,9 +139,12 @@ echo ""
 # VIRTUOSO_PORT handling (GDB_PORT is the pre-rename name, still honoured if set)
 VIRTUOSO_PORT="${VIRTUOSO_PORT:-$GDB_PORT}"
 if [ -z "$VIRTUOSO_PORT" ]; then
-  echo "The next question relates to the Virtuoso database that contains your External metadata. "
-  echo "By default, this will NOT be exposed after installation, but we capture the port number here so that it can easily be switched ON for troubleshooting or maintenance. "
-  read -p "Enter the port where your Virtuoso database will serve (e.g. 8890): " VIRTUOSO_PORT
+echo "Choose the port for the Virtuoso metadata database."
+echo ""
+echo "By default, Virtuoso is not exposed outside Docker. This port is stored so that database access can be enabled later for maintenance or troubleshooting."
+echo ""
+
+read -p "Virtuoso database port [recommended: 8890]: " VIRTUOSO_PORT
 fi
 
 if [ -z "$VIRTUOSO_PORT" ]; then
@@ -314,18 +330,23 @@ rm "${CWD}/bootstrap_external/docker-compose-${P}.yml"
 rm "${CWD}/config/fdp/application-${P}.yml"
 
 echo ""
-echo -e "${GREEN}DONE!"
+echo -e "${GREEN}Installation completed successfully.${NC}"
 echo ""
-echo -e "${GREEN}Please now move into the ${NC} ./${P}-R2F-external/ ${GREEN} folder where the full version of the docker-compose-{P}.yml file lives."
+echo -e "${GREEN}Deployment files have been created in:${NC}"
+echo "  ./${P}-R2F-external/"
 echo ""
-echo -e "${GREEN}To start your full R2F External server, cd to that folder or move it elsewhere and type:  "
-echo -e "$DOCKER_COMPOSE -f docker-compose-${P}.yml up -d ${NC}"
+echo -e "${GREEN}To start R2F External:${NC}"
+echo "  cd ${P}-R2F-external"
+echo "  $DOCKER_COMPOSE -f docker-compose-${P}.yml up -d"
 echo ""
-echo -e "${GREEN}Security note:${NC} the Virtuoso dba password, the FDP server's JWT signing secret,"
-echo -e "and a freshly generated MongoDB root password have already been set for this install --"
-echo -e "all are stored in ./${P}-R2F-external/fdp/application-${P}.yml (mode 644, world-readable"
-echo -e "on purpose -- the fdp container reads it as its own uid, not yours) and"
-echo -e "./${P}-R2F-external/.env (mode 600). There is nothing further you need to change there"
-echo -e "before going into production."
+echo ""
+echo -e "${GREEN}Security note:${NC}"
+echo "A Virtuoso DBA password, MongoDB root password, and JWT signing secret have been generated automatically for this installation."
+echo ""
+echo "These settings are stored in:"
+echo "  ./${P}-R2F-external/fdp/application-${P}.yml"
+echo "  ./${P}-R2F-external/.env"
+echo ""
+echo "No additional changes are required before deployment."
 echo ""
 
